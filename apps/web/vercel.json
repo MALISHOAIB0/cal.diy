@@ -28,6 +28,6 @@
       "path": "/api/cron/selected-calendars",
       "schedule": "*/5 * * * *"
     }
-  ],
-  "functions": {}
+  ]
 }
+
