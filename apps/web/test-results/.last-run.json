@@ -1,4 +1,13 @@
 {
-  "status": "failed",
-  "failedTests": []
+  "crons": [
+    {
+      "path": "/api/cron/calendar-subscriptions",
+      "schedule": "*/5 * * * *"
+    },
+    ...
+    {
+      "path": "/api/cron/selected-calendars",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }
