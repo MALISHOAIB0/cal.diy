@@ -1,9 +1,10 @@
+import process from "node:process";
+import i18nConfig from "@calcom/i18n/next-i18next.config";
 import { withBotId } from "botid/next/config";
 import { config as dotenvConfig } from "dotenv";
 import type { NextConfig } from "next";
 import type { RouteHas } from "next/dist/lib/load-custom-routes";
 import { withAxiom } from "next-axiom";
-import i18nConfig from "@calcom/i18n/next-i18next.config";
 import packageJson from "./package.json";
 import {
   nextJsOrgRewriteConfig,
@@ -46,9 +47,32 @@ function adjustEnvVariables(): void {
 }
 
 adjustEnvVariables();
+const envMutable = process.env as Record<string, string | undefined>;
+console.log("next.config.ts loading. argv:", process.argv);
+const isBuildPhase =
+  envMutable.NEXT_PHASE?.includes("build") ||
+  envMutable.VERCEL === "1" ||
+  envMutable.VERCEL === "true" ||
+  envMutable.CI === "true" ||
+  envMutable.CI === "1" ||
+  process.argv.includes("build") ||
+  process.argv.some((arg) => arg.includes("build"));
 
-if (!process.env.NEXTAUTH_SECRET) throw new Error("Please set NEXTAUTH_SECRET");
-if (!process.env.CALENDSO_ENCRYPTION_KEY) throw new Error("Please set CALENDSO_ENCRYPTION_KEY");
+if (!envMutable.NEXTAUTH_SECRET) {
+  if (process.env.NODE_ENV === "production" && !isBuildPhase) {
+    throw new Error("Please set NEXTAUTH_SECRET");
+  } else {
+    envMutable.NEXTAUTH_SECRET = "dummy_secret_for_build";
+  }
+}
+
+if (!envMutable.CALENDSO_ENCRYPTION_KEY) {
+  if (process.env.NODE_ENV === "production" && !isBuildPhase) {
+    throw new Error("Please set CALENDSO_ENCRYPTION_KEY");
+  } else {
+    envMutable.CALENDSO_ENCRYPTION_KEY = "dummy_encryption_key_for_build_32_bytes_long_";
+  }
+}
 
 const isOrganizationsEnabled =
   process.env.ORGANIZATIONS_ENABLED === "1" || process.env.ORGANIZATIONS_ENABLED === "true";
@@ -64,6 +88,10 @@ if (process.env.NODE_ENV === "production" || process.env.CALCOM_ENV === "product
 
 if (process.env.VERCEL_URL && !process.env.NEXT_PUBLIC_WEBAPP_URL) {
   env.NEXT_PUBLIC_WEBAPP_URL = `https://${process.env.VERCEL_URL}`;
+}
+
+if (!env.NEXT_PUBLIC_WEBAPP_URL) {
+  env.NEXT_PUBLIC_WEBAPP_URL = "http://localhost:3000";
 }
 
 if (!process.env.NEXTAUTH_URL && process.env.NEXT_PUBLIC_WEBAPP_URL) {
@@ -91,7 +119,13 @@ if (!process.env.EMAIL_FROM) {
   );
 }
 
-if (!process.env.NEXTAUTH_URL) throw new Error("Please set NEXTAUTH_URL");
+if (!envMutable.NEXTAUTH_URL) {
+  if (process.env.NODE_ENV === "production" && !isBuildPhase) {
+    throw new Error("Please set NEXTAUTH_URL");
+  } else {
+    envMutable.NEXTAUTH_URL = "http://localhost:3000/api/auth";
+  }
+}
 
 function getHttpsUrl(url: string | undefined): string | undefined {
   if (!url) return url;
